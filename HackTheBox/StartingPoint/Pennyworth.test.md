@@ -1,6 +1,6 @@
-# Hack The Box - Jenkins Machine
+# Hack The Box - Pennyworth
 
-Difficulty: Medium  
+Difficulty: Very Easy  
 OS: Linux  
 IP: TARGET.IP  
 
