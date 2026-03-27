@@ -1,6 +1,6 @@
 # Hack The Box - Pennyworth
 
-Difficulty: Very Easy
+Difficulty: Very Easy  
 OS: Linux  
 IP: TARGET.IP  
 
