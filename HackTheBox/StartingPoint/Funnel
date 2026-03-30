@@ -1,0 +1,245 @@
+# Hack The Box - Funnel
+
+Difficulty: Very Easy  
+OS: Linux  
+IP: TARGET.IP  
+
+---
+
+# 0. Task Answers
+
+Task 1: How many TCP ports are open?  
+2  
+
+Task 2: What is the name of the directory that is available on the FTP server?  
+mail_backup  
+
+Task 3: What is the default account password for new members?  
+funnel123#!#  
+
+Task 4: Which user has not changed their default password yet?  
+christine  
+
+Task 5: Which service is running on TCP port 5432?  
+postgreSQL  
+
+Task 6: What type of tunneling is required?  
+local port forwarding  
+
+Task 7: What is the name of the database that holds the flag?  
+secrets  
+
+Task 8: Could you use a dynamic tunnel instead?  
+yes  
+
+Flag:  
+cf277664b1771217d7006acdea006db1  
+
+---
+
+# 1. Reconnaissance
+
+## Nmap scan
+
+Command:
+
+nmap -sC -sV -p- TARGET.IP  
+
+Result:
+
+PORT     STATE SERVICE  
+21/tcp   open  ftp  
+22/tcp   open  ssh  
+
+Notes:
+
+- FTP and SSH services available  
+
+Moje notatki:
+
+skan nmap -sC -sV -p- TARGET.IP  
+2 otwarte porty, 21 ftp, 22 ssh  
+
+---
+
+# 2. Enumeration
+
+## FTP enumeration
+
+Login:
+
+anonymous@TARGET.IP  
+
+Findings:
+
+- directory: mail_backup  
+
+Moje notatki:
+
+logujemy sie na ftp anonymous@TARGET.IP  
+znajdujemy folder mail_backup  
+
+---
+
+## File analysis
+
+Files found:
+
+- password_policy.pdf  
+- welcome_28112022226  
+
+Download:
+
+get password_policy.pdf  
+get welcome_28112022226  
+
+Moje notatki:
+
+uzywamy get password_policy.pdf i get welcome_28112022  
+
+---
+
+## Extracting credentials
+
+Findings:
+
+- default password: funnel123#!#  
+- list of users from welcome file  
+
+Moje notatki:
+
+w pliku password_policy.pdf znajdujemy domyslne haslo "funnel123#!#"  
+w pliku welcome znajduje sie lista userow  
+uzytkownik christine nie zmienil hasla  
+
+---
+
+## SSH access
+
+Login:
+
+ssh christine@TARGET.IP  
+
+Password:
+
+funnel123#!#  
+
+Result:
+
+- access to system  
+
+---
+
+## Local service enumeration
+
+Command:
+
+ss -tln  
+
+Findings:
+
+- port 5432 listening locally  
+
+Moje notatki:
+
+komenda ss -tln  
+port 5432 (PostgreSQL) tylko lokalnie  
+
+---
+
+# 3. Exploitation
+
+## SSH Tunnel
+
+Command:
+
+ssh -L 1234:localhost:5432 christine@TARGET.IP  
+
+Moje notatki:
+
+ssh -L LOCAL_PORT:TARGET:TARGET_PORT user@ssh_server  
+
+---
+
+## PostgreSQL access
+
+Command:
+
+psql -U christine -h localhost -p 1234  
+
+---
+
+## Database enumeration
+
+Commands:
+
+\list  
+\c secrets  
+\dt  
+
+Findings:
+
+- database: secrets  
+- table: flag  
+
+Moje notatki:
+
+\list  
+\c secrets  
+\dt  
+
+---
+
+## Data extraction
+
+Command:
+
+SELECT * FROM flag;  
+
+Result:
+
+- flag retrieved  
+
+Moje notatki:
+
+SELECT * FROM flag;  
+
+---
+
+# 4. Privilege Escalation
+
+Not required  
+
+---
+
+# 5. Flags
+
+Flag:
+
+cf277664b1771217d7006acdea006db1  
+
+---
+
+# 6. Lessons Learned
+
+- anonymous FTP can leak sensitive data  
+- default passwords are a major security risk  
+- always inspect downloaded files  
+- internal services may require tunneling  
+- SSH port forwarding is essential for pivoting  
+
+---
+
+# Tools Used
+
+- nmap  
+- ftp  
+- ssh  
+- psql  
+
+---
+
+# References
+
+- https://www.postgresql.org/docs/  
+- https://man.openbsd.org/ssh  
