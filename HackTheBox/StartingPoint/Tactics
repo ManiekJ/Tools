@@ -1,0 +1,45 @@
+skan nmap -sC -sV -p- TARGET.IP
+2 otwarte porty, 21 fpt, 22 ssh,
+logujemy sie na ftp anonymous@TARGET.IP
+znajdujemy folder mail_backup
+w folderze znajduja sie 2 pliki, password_policy.pdf i welcome_28112022226
+uzywamy get password_policy.pdf is get welcome_28112022
+226
+w pliku password_policy.pdf znajdujemy domyslne haslo dla nowych uzytkownikow "funnel123#!#"
+w pliku welcome_28112022226 znajduje sie lista uzytkownikow do ktorych zostal wyslany ten plik, odkrywamy ze uzytkownik christine nie zmienil domyslnego hasla i mozemy zalogowac sie na to konto poprzez ssh
+komenda ss -tln sprawdzamy ktore porty nasluchuja lokalnie, znajdujemy 5432 ktory jest domyslnym portem dla postgreSQL
+musimy podlaczyc sie do postgresql za pomoca tunelu ssh, w tym celu uzywamy komendy: ssh -L LOCAL_PORT:TARGET:TARGET_PORT user@ssh_server 
+laczymy sie z psql za pomoca komendy: psql -U christine -h localhost -p 1234
+sprawdzamy jakie databazy znajduja sie w systemie za pomoca \list
+znajdujemy databaze secrets. uzywamy \c secrets zeby uzyc database.
+komenda \dt wyswietlamy wszystkie tabele w bazie. znajdujemy plik flag.
+SELECT * FROM flag;
+
+cf277664b1771217d7006acdea006db1
+
+Task 1:
+How many TCP ports are open?
+2
+Task 2:
+What is the name of the directory that is available on the FTP server?
+mail_backup
+Task 3:
+What is the default account password that every new member on the "Funnel" team should change as soon as possible?
+funnel123#!#
+Task 4:
+Which user has not changed their default password yet?
+christine
+Task 5:
+Which service is running on TCP port 5432 and listens only on localhost?
+postgreSQL
+Task 6:
+Since you can't access the previously mentioned service from the local machine, you will have to create a tunnel and connect to it from your machine. What is the correct type of tunneling to use? remote port forwarding or local port forwarding?
+local port forwarding
+Task 7:
+What is the name of the database that holds the flag?
+secrets
+Task 8:
+Could you use a dynamic tunnel instead of local port forwarding? Yes or No.
+yes
+Flag:
+cf277664b1771217d7006acdea006db1
